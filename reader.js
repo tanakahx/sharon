@@ -37,9 +37,13 @@ var next = function (c) {
     return ch;
 };
 
-var isalnum = function(ch) {
-    return ('a' <= ch && ch <= 'z') || ('0' <= ch && ch <= '9');
-}
+var isNum = function(ch) {
+    return /[0-9]/.exec(ch);
+};
+
+var isSymbolChar = function(ch) {
+    return /[a-zA-Z!\$%&\*\+-\.\/:<=>\?@\^_~]/.exec(ch);
+};
 
 var sexp = function() {
     var object = {};
@@ -48,18 +52,18 @@ var sexp = function() {
     if (ch === '(') {
         next();
         white();
-        object['car'] = sexp();
+        object.car = sexp();
     }
-    else if (isalnum(ch)) {
-        object['car'] = atom();
+    else {
+        object.car = atom();
     }
     white();
     if (ch == ')') {
         next();
-        object['cdr'] = null;
+        object.cdr = null;
     }
     else {
-        object['cdr'] = sexp();
+        object.cdr = sexp();
     }
     return object;
 };
@@ -77,14 +81,28 @@ var atom = function() {
     
     // Parse a atom value.
 
-    if ('a' <= ch && ch <= 'z') {
-        return symbol();
-    } 
-    else if (ch === '"') {
+    var _at;
+    var _ch;
+
+    if (ch === '"') {
         return string();
     }
+    else if (ch === '-' || isNum(ch)) {
+        try {
+            // Save current parser context.
+            _at = at;
+            _ch = ch;
+            return number();
+        }
+        catch (e) {
+            // Resume parser context.
+            at = _at;
+            ch = _ch;
+            return symbol();
+        }
+    }
     else {
-        return number();
+        return symbol();
     }
 };
 
@@ -94,11 +112,16 @@ var symbol = function() {
 
     var string = '';
     
-    while ('a' <= ch && ch <= 'z') {
-        string += ch;
-        next();
+    if (isSymbolChar(ch)) {
+        while (isSymbolChar(ch)) {
+            string += ch;
+            next();
+        }
+        return string;
     }
-    return string;
+    else {
+        error("Bad symbol");
+    }
 };
 
 var number = function () {
@@ -170,6 +193,78 @@ var value = function() {
     }
 };
 
+var car = function(sexp) {
+    return sexp.car;
+};
+
+var cdr = function(sexp) {
+    return sexp.cdr;
+};
+
+var symtbl = {
+    '+' : function() {
+        var ret = 0;
+        for (var i = 0; i < arguments.length; i++) {
+            ret += arguments[i];
+        }
+        return ret;
+    },
+
+    '-' : function() {
+        switch (arguments.length) {
+        case 0:
+            error("Invalid number of arguments");
+        case 1:
+            return -arguments[0];
+        default:
+            var ret = arguments[0];
+            for (var i = 1; i < arguments.length; i++) {
+                ret -= arguments[i];
+            }
+            return ret;
+        }
+    },
+
+    '*' : function() {
+        var ret = 1;
+        for (var i = 0; i < arguments.length; i++) {
+            ret *= arguments[i];
+        }
+        return ret;
+    },
+};
+
+var eval = function(sexp) {
+    var _car = car(sexp);
+    var _cdr = cdr(sexp);
+    if (typeof _car === 'string') {
+        if (_car === '"') {
+            error("Illegal function call.");
+        }
+        else {
+            var func = symtbl[_car];
+            var args = toArray(_cdr);
+            return func.apply(this, args);
+        }
+    }
+    else {
+        error("Illegal function call.")
+    }
+};
+
+var toArray = function(sexp) {
+    var f = function(sexp, acc) {
+        if (sexp === null) {
+            return acc;
+        }
+        else {
+            acc.push(car(sexp));
+            return f(cdr(sexp), acc);
+        }
+    };
+    return f(sexp, [])
+};
+
 init('-123');
 console.log(value() === -123);
 
@@ -183,7 +278,27 @@ init('"hello" ');
 console.log(value() === '"hello"');
 
 init('(hello world)');
-var sexp = value();
-console.log(sexp['car'] === 'hello');
-console.log(sexp['cdr']['car'] === 'world');
-console.log(sexp['cdr']['cdr'] === null);
+var _sexp = value();
+console.log(car(_sexp) === 'hello');
+console.log(car(cdr(_sexp)) === 'world');
+console.log(cdr(cdr(_sexp)) === null);
+
+init('(+ 1 2)');
+_sexp = value();
+console.log(car(_sexp) === '+');
+console.log(car(cdr(_sexp)) === 1);
+console.log(car(cdr(cdr(_sexp))) === 2);
+console.log(cdr(cdr(cdr(_sexp))) === null);
+console.log(eval(_sexp) == 3);
+
+init('(+)')
+console.log(eval(value()) == 0);
+init('(+ 1)')
+
+init('(- 1)');
+console.log(eval(value()) == -1);
+
+init('(*)')
+console.log(eval(value()) == 1);
+init('(* 1 2 3)')
+console.log(eval(value()) == 6);
