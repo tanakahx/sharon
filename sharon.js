@@ -265,40 +265,52 @@ var toArray = function(sexp) {
     return f(sexp, [])
 };
 
-init('-123');
-console.log(value() === -123);
+// Simple unit test framework supporting TAP
 
-init(' -123');
-console.log(value() === -123);
+var testcount = 0;
 
-init('"hello"');
-console.log(value() === '"hello"');
+var is = function(got, expected, description) {
+    var util = require('util');
+    if (got !== expected) {
+        util.print("not ");
+    }
+    util.print("ok ", ++testcount);
+    if (description !== undefined) {
+        console.log(" - " + description);
+    }
+    else {
+        console.log("");
+    }
+    if (got !== expected) {
+        console.log("# got:      ", got);
+        console.log("# expected: ", expected);
+    }
+};
 
-init('"hello" ');
-console.log(value() === '"hello"');
+var will = function(got, expected, description) {
+    is(got(), expected, description);
+};
 
-init('(hello world)');
-var _sexp = value();
-console.log(car(_sexp) === 'hello');
-console.log(car(cdr(_sexp)) === 'world');
-console.log(cdr(cdr(_sexp)) === null);
+var plan = function(count) {
+    console.log("1.." + count);
+};
 
-init('(+ 1 2)');
-_sexp = value();
-console.log(car(_sexp) === '+');
-console.log(car(cdr(_sexp)) === 1);
-console.log(car(cdr(cdr(_sexp))) === 2);
-console.log(cdr(cdr(cdr(_sexp))) === null);
-console.log(eval(_sexp) == 3);
+plan(17);
 
-init('(+)')
-console.log(eval(value()) == 0);
-init('(+ 1)')
-
-init('(- 1)');
-console.log(eval(value()) == -1);
-
-init('(*)')
-console.log(eval(value()) == 1);
-init('(* 1 2 3)')
-console.log(eval(value()) == 6);
+will(function(){init('-123');  return value();}, -123);
+will(function(){init(' -123'); return value();}, -123);
+will(function(){init('hello');  return value();}, "hello");
+will(function(){init('hello '); return value();}, "hello");
+will(function(){init('(hello world)'); return car(value());}, "hello");
+will(function(){init('(hello world)'); return car(cdr(value()));}, "world");
+will(function(){init('(hello world)'); return cdr(cdr(value()));}, null);
+will(function(){init('(+ 1 2)'); return car(value());}, "+");
+will(function(){init('(+ 1 2)'); return car(cdr(value()));}, 1);
+will(function(){init('(+ 1 2)'); return car(cdr(cdr(value())));}, 2);
+will(function(){init('(+ 1 2)'); return cdr(cdr(cdr(value())));}, null);
+will(function(){init('(+ 1 2)'); return eval(value());}, 3);
+will(function(){init('(+)');     return eval(value());}, 0);
+will(function(){init('(- 1)');   return eval(value());}, -1);
+will(function(){init('(- 1 2)'); return eval(value());}, -1);
+will(function(){init('(*)');       return eval(value());}, 1);
+will(function(){init('(* 1 2 3)'); return eval(value());}, 6);
