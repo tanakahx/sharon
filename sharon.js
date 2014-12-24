@@ -235,20 +235,31 @@ var symtbl = {
 };
 
 var eval = function(sexp) {
-    var _car = car(sexp);
-    var _cdr = cdr(sexp);
-    if (typeof _car === 'string') {
-        if (_car === '"') {
-            error("Illegal function call.");
+    if (typeof sexp === 'object') {
+        var _car = car(sexp);
+        var _cdr = cdr(sexp);
+        if (typeof _car === 'string') {
+            if (_car === '"') {
+                error("Illegal function call.");
+            }
+            else {
+                var func = symtbl[_car];
+                var args = toArray(_cdr);
+                return func.apply(this, args);
+            }
         }
         else {
-            var func = symtbl[_car];
-            var args = toArray(_cdr);
-            return func.apply(this, args);
+            error("Illegal function call.")
         }
     }
+    else if (typeof sexp === 'number') {
+        return sexp;
+    }
+    else if (typeof sexp === 'string') {
+        return sexp;
+    }
     else {
-        error("Illegal function call.")
+        error("Unkown object type to eval");
     }
 };
 
@@ -292,10 +303,12 @@ var will = function(got, expected, description) {
 };
 
 var plan = function(count) {
-    console.log("1.." + count);
+    if (count > 0) {
+        console.log("1.." + count);
+    }
 };
 
-plan(17);
+plan(21);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -314,3 +327,7 @@ will(function(){init('(- 1)');   return eval(value());}, -1);
 will(function(){init('(- 1 2)'); return eval(value());}, -1);
 will(function(){init('(*)');       return eval(value());}, 1);
 will(function(){init('(* 1 2 3)'); return eval(value());}, 6);
+will(function(){init('-123');  return eval(value());}, -123);
+will(function(){init(' -123'); return eval(value());}, -123);
+will(function(){init('hello');  return eval(value());}, "hello");
+will(function(){init('hello '); return eval(value());}, "hello");
