@@ -235,7 +235,16 @@ var symtbl = {
 };
 
 var eval = function(sexp) {
-    if (typeof sexp === 'object') {
+    if (sexp === null) {
+        return null;
+    }
+    else if (typeof sexp === 'number') {
+        return sexp;
+    }
+    else if (typeof sexp === 'string') {
+        return sexp;
+    }
+    else if (typeof sexp === 'object') {
         var _car = car(sexp);
         var _cdr = cdr(sexp);
         if (typeof _car === 'string') {
@@ -244,19 +253,23 @@ var eval = function(sexp) {
             }
             else {
                 var func = symtbl[_car];
-                var args = toArray(_cdr);
+                var sexp = _cdr;
+                var args = [];
+                while (sexp !== null) {
+                    if (typeof car(sexp) === 'object') {
+                        args.push(eval(car(sexp)));
+                    }
+                    else {
+                        args.push(car(sexp));
+                    }
+                    sexp = cdr(sexp);
+                }
                 return func.apply(this, args);
             }
         }
         else {
             error("Illegal function call.")
         }
-    }
-    else if (typeof sexp === 'number') {
-        return sexp;
-    }
-    else if (typeof sexp === 'string') {
-        return sexp;
     }
     else {
         error("Unkown object type to eval");
@@ -308,7 +321,7 @@ var plan = function(count) {
     }
 };
 
-plan(21);
+plan(24);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -320,9 +333,9 @@ will(function(){init('(hello world)'); return cdr(cdr(value()));}, null);
 will(function(){init('(+ 1 2)'); return car(value());}, "+");
 will(function(){init('(+ 1 2)'); return car(cdr(value()));}, 1);
 will(function(){init('(+ 1 2)'); return car(cdr(cdr(value())));}, 2);
-will(function(){init('(+ 1 2)'); return cdr(cdr(cdr(value())));}, null);
-will(function(){init('(+ 1 2)'); return eval(value());}, 3);
-will(function(){init('(+)');     return eval(value());}, 0);
+will(function(){init('(+ 1 2)'); return cdr(cdr(cdr(value())));}, null, "end of list");
+will(function(){init('(+ 1 2)'); return eval(value());}, 3, "1 + 2");
+will(function(){init('(+)');     return eval(value());}, 0, "+ with no argument");
 will(function(){init('(- 1)');   return eval(value());}, -1);
 will(function(){init('(- 1 2)'); return eval(value());}, -1);
 will(function(){init('(*)');       return eval(value());}, 1);
@@ -331,3 +344,6 @@ will(function(){init('-123');  return eval(value());}, -123);
 will(function(){init(' -123'); return eval(value());}, -123);
 will(function(){init('hello');  return eval(value());}, "hello");
 will(function(){init('hello '); return eval(value());}, "hello");
+will(function(){init('(+ 1 (* 2 3))'); return eval(value());}, 7);
+will(function(){init('(+ 1 (* 2 3) 4)'); return eval(value());}, 11);
+will(function(){init('(+ (* 2 3) 4)'); return eval(value());}, 10);
