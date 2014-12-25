@@ -149,6 +149,18 @@ var cdr = function(sexp) {
 };
 
 var symtbl = {
+    'if' : {
+        'type' : 'special',
+        'function' : function(sexp) {
+            if (eval(car(sexp))) {
+                return eval(car(cdr(sexp)));
+            }
+            else {
+                return eval(car(cdr(cdr(sexp))));
+            }
+        },
+    },
+
     '=' : {
         'type' : 'function',
         'function' : function() {
@@ -259,8 +271,8 @@ var eval = function(sexp) {
                     }
                     return symbol.function.apply(this, args);
                 }
-                else {
-                    error("Unkown symbol type");
+                else if (symbol.type === 'special') {
+                    return symbol.function(cdr(sexp));
                 }
             }
         }
@@ -305,7 +317,7 @@ var plan = function(count) {
     }
 };
 
-plan(30);
+plan(32);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -337,3 +349,5 @@ will(function(){init('(/ 2 3)'); return eval(value());}, 2/3);
 will(function(){init('(/ 2 3 4)'); return eval(value());}, 2/3/4);
 will(function(){init('(= 0 0)'); return eval(value());}, true);
 will(function(){init('(= 0 1)'); return eval(value());}, false);
+will(function(){init('(if (= 0 0) 1 2)'); return eval(value());}, 1);
+will(function(){init('(if (= 0 1) 1 2)'); return eval(value());}, 2);
