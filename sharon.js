@@ -232,6 +232,21 @@ var symtbl = {
         }
         return ret;
     },
+
+    '/' : function() {
+        switch (arguments.length) {
+        case 0:
+            error("Invalid number of arguments");
+        case 1:
+            return 1 / arguments[0];
+        default:
+            var ret = arguments[0];
+            for (var i = 1; i < arguments.length; i++) {
+                ret /= arguments[i];
+            }
+            return ret;
+        }
+    },
 };
 
 var eval = function(sexp) {
@@ -321,7 +336,7 @@ var plan = function(count) {
     }
 };
 
-plan(24);
+plan(27);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -347,3 +362,6 @@ will(function(){init('hello '); return eval(value());}, "hello");
 will(function(){init('(+ 1 (* 2 3))'); return eval(value());}, 7);
 will(function(){init('(+ 1 (* 2 3) 4)'); return eval(value());}, 11);
 will(function(){init('(+ (* 2 3) 4)'); return eval(value());}, 10);
+will(function(){init('(/ 2)'); return eval(value());}, 1/2);
+will(function(){init('(/ 2 3)'); return eval(value());}, 2/3);
+will(function(){init('(/ 2 3 4)'); return eval(value());}, 2/3/4);
