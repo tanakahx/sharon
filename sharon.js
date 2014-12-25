@@ -149,50 +149,80 @@ var cdr = function(sexp) {
 };
 
 var symtbl = {
-    '+' : function() {
-        var ret = 0;
-        for (var i = 0; i < arguments.length; i++) {
-            ret += arguments[i];
+    '=' : {
+        'type' : 'function',
+        'function' : function() {
+            if (arguments.length < 2) {
+                error("Invalid number of arguments");
+            }
+            else {
+                var val = arguments[0];
+                for (var i = 1; i < arguments.length; i++) {
+                    if (val !== arguments[i]) {
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
-        return ret;
     },
 
-    '-' : function() {
-        switch (arguments.length) {
-        case 0:
-            error("Invalid number of arguments");
-        case 1:
-            return -arguments[0];
-        default:
-            var ret = arguments[0];
-            for (var i = 1; i < arguments.length; i++) {
-                ret -= arguments[i];
+    '+' : {
+        'type' : 'function',
+        'function' : function() {
+            var ret = 0;
+            for (var i = 0; i < arguments.length; i++) {
+                ret += arguments[i];
             }
             return ret;
-        }
+        },
     },
 
-    '*' : function() {
-        var ret = 1;
-        for (var i = 0; i < arguments.length; i++) {
-            ret *= arguments[i];
-        }
-        return ret;
+    '-' : {
+        'type' : 'function',
+        'function' : function() {
+            switch (arguments.length) {
+            case 0:
+                error("Invalid number of arguments");
+            case 1:
+                return -arguments[0];
+            default:
+                var ret = arguments[0];
+                for (var i = 1; i < arguments.length; i++) {
+                    ret -= arguments[i];
+                }
+                return ret;
+            }
+        },
     },
 
-    '/' : function() {
-        switch (arguments.length) {
-        case 0:
-            error("Invalid number of arguments");
-        case 1:
-            return 1 / arguments[0];
-        default:
-            var ret = arguments[0];
-            for (var i = 1; i < arguments.length; i++) {
-                ret /= arguments[i];
+    '*' : {
+        'type' : 'function',
+        'function' : function() {
+            var ret = 1;
+            for (var i = 0; i < arguments.length; i++) {
+                ret *= arguments[i];
             }
             return ret;
-        }
+        },
+    },
+
+    '/' : {
+        'type' : 'function',
+        'function' : function() {
+            switch (arguments.length) {
+            case 0:
+                error("Invalid number of arguments");
+            case 1:
+                return 1 / arguments[0];
+            default:
+                var ret = arguments[0];
+                for (var i = 1; i < arguments.length; i++) {
+                    ret /= arguments[i];
+                }
+                return ret;
+            }
+        },
     },
 };
 
@@ -214,19 +244,24 @@ var eval = function(sexp) {
                 error("Illegal function call.");
             }
             else {
-                var func = symtbl[_car];
-                var sexp = _cdr;
-                var args = [];
-                while (sexp !== null) {
-                    if (typeof car(sexp) === 'object') {
-                        args.push(eval(car(sexp)));
+                var symbol = symtbl[_car];
+                if (symbol.type === 'function') {
+                    var sexp = _cdr;
+                    var args = [];
+                    while (sexp !== null) {
+                        if (typeof car(sexp) === 'object') {
+                            args.push(eval(car(sexp)));
+                        }
+                        else {
+                            args.push(car(sexp));
+                        }
+                        sexp = cdr(sexp);
                     }
-                    else {
-                        args.push(car(sexp));
-                    }
-                    sexp = cdr(sexp);
+                    return symbol.function.apply(this, args);
                 }
-                return func.apply(this, args);
+                else {
+                    error("Unkown symbol type");
+                }
             }
         }
         else {
@@ -270,7 +305,7 @@ var plan = function(count) {
     }
 };
 
-plan(28);
+plan(30);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -300,3 +335,5 @@ will(function(){init('(+ (* 2 3) 4)'); return eval(value());}, 10);
 will(function(){init('(/ 2)'); return eval(value());}, 1/2);
 will(function(){init('(/ 2 3)'); return eval(value());}, 2/3);
 will(function(){init('(/ 2 3 4)'); return eval(value());}, 2/3/4);
+will(function(){init('(= 0 0)'); return eval(value());}, true);
+will(function(){init('(= 0 1)'); return eval(value());}, false);
