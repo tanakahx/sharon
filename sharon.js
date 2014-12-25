@@ -42,7 +42,7 @@ var isNum = function(ch) {
 };
 
 var isSymbolChar = function(ch) {
-    return /[a-zA-Z!\$%&\*\+-\.\/:<=>\?@\^_~]/.exec(ch);
+    return /[a-zA-Z0-9!\$%&\*\+-\.\/:<=>\?@\^_~]/.exec(ch);
 };
 
 var sexp = function() {
@@ -87,22 +87,10 @@ var atom = function() {
     if (ch === '"') {
         return string();
     }
-    else if (ch === '-' || isNum(ch)) {
-        try {
-            // Save current parser context.
-            _at = at;
-            _ch = ch;
-            return number();
-        }
-        catch (e) {
-            // Resume parser context.
-            at = _at;
-            ch = _ch;
-            return symbol();
-        }
-    }
     else {
-        return symbol();
+        var sym = symbol();
+        var number = +sym;
+        return isNaN(number) ? sym : number;
     }
 };
 
@@ -121,47 +109,6 @@ var symbol = function() {
     }
     else {
         error("Bad symbol");
-    }
-};
-
-var number = function () {
-
-    // Parse a number value.
-
-    var number,
-        string = '';
-
-    if (ch === '-') {
-        string = '-';
-        next('-');
-    }
-    while (ch >= '0' && ch <= '9') {
-        string += ch;
-        next();
-    }
-    if (ch === '.') {
-        string += '.';
-        while (next() && ch >= '0' && ch <= '9') {
-            string += ch;
-        }
-    }
-    if (ch === 'e' || ch === 'E') {
-        string += ch;
-        next();
-        if (ch === '-' || ch === '+') {
-            string += ch;
-            next();
-        }
-        while (ch >= '0' && ch <= '9') {
-            string += ch;
-            next();
-        }
-    }
-    number = +string;
-    if (isNaN(number)) {
-        error("Bad number");
-    } else {
-        return number;
     }
 };
 
@@ -291,19 +238,6 @@ var eval = function(sexp) {
     }
 };
 
-var toArray = function(sexp) {
-    var f = function(sexp, acc) {
-        if (sexp === null) {
-            return acc;
-        }
-        else {
-            acc.push(car(sexp));
-            return f(cdr(sexp), acc);
-        }
-    };
-    return f(sexp, [])
-};
-
 // Simple unit test framework supporting TAP
 
 var testcount = 0;
@@ -336,12 +270,13 @@ var plan = function(count) {
     }
 };
 
-plan(27);
+plan(28);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
 will(function(){init('hello');  return value();}, "hello");
 will(function(){init('hello '); return value();}, "hello");
+will(function(){init('-123abc'); return value();}, "-123abc");
 will(function(){init('(hello world)'); return car(value());}, "hello");
 will(function(){init('(hello world)'); return car(cdr(value()));}, "world");
 will(function(){init('(hello world)'); return cdr(cdr(value()));}, null);
