@@ -84,13 +84,15 @@ var atom = function() {
     var _at;
     var _ch;
 
-    if (ch === '"') {
+    switch (ch) {
+    case '"':
         return string();
-    }
-    else {
+    case '#':
+        return number(); 
+    default:
         var sym = symbol();
-        var number = +sym;
-        return isNaN(number) ? sym : number;
+        var n = +sym;
+        return isNaN(n) ? sym : n;
     }
 };
 
@@ -126,6 +128,21 @@ var string = function() {
     }
 };
 
+var number = function() {
+    var string = '';
+    while (ch && /[^ ()]/.exec(ch)) {
+        string += ch;
+        next();
+    }
+    if (/[tT]/.exec(string)) {
+        return true;
+    }
+    else if (/[fF]/.exec(string)) {
+        return false;
+    }
+    return string;
+};
+
 var value = function() {
     switch (ch) {
     case '(':
@@ -135,6 +152,9 @@ var value = function() {
     case '"':
         next();
         return string();
+    case "#":
+        next();
+        return number();
     default:
         return atom();
     }
@@ -242,6 +262,9 @@ var eval = function(sexp) {
     if (sexp === null) {
         return null;
     }
+    else if (typeof sexp === 'boolean') {
+        return sexp;
+    }
     else if (typeof sexp === 'number') {
         return sexp;
     }
@@ -285,6 +308,18 @@ var eval = function(sexp) {
     }
 };
 
+var print = function(sexp) {
+    if (sexp === true) {
+        return '#t';
+    }
+    else if (sexp === false) {
+        return '#f';
+    }
+    else {
+        return sexp;
+    }
+};
+
 // Simple unit test framework supporting TAP
 
 var testcount = 0;
@@ -317,7 +352,7 @@ var plan = function(count) {
     }
 };
 
-plan(32);
+plan(36);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -351,3 +386,7 @@ will(function(){init('(= 0 0)'); return eval(value());}, true);
 will(function(){init('(= 0 1)'); return eval(value());}, false);
 will(function(){init('(if (= 0 0) 1 2)'); return eval(value());}, 1);
 will(function(){init('(if (= 0 1) 1 2)'); return eval(value());}, 2);
+is(print(true),  '#t');
+is(print(false), '#f');
+will(function(){init('#t'); return eval(value());}, true);
+will(function(){init('#f'); return eval(value());}, false);
