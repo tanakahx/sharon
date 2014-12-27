@@ -86,8 +86,10 @@ var atom = function() {
 
     switch (ch) {
     case '"':
+        next();
         return string();
     case '#':
+        next();
         return number(); 
     default:
         var sym = symbol();
@@ -121,6 +123,7 @@ var string = function() {
     var ret = symbol();
 
     if (ch === '"') {
+        next();
         return '"' + ret + '"';
     }
     else {
@@ -372,7 +375,7 @@ var plan = function(count) {
     }
 };
 
-plan(48);
+plan(52);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -422,3 +425,7 @@ will(function(){init('#d15'); return eval(value());}, 15);
 will(function(){init('#xF'); return eval(value());}, 15);
 will(function(){init('#b1111'); return eval(value());}, 15);
 will(function(){init('#o17'); return eval(value());}, 15);
+will(function(){init('(if #t 1 2)'); return eval(value());}, 1);
+will(function(){init('(if #f 1 2)'); return eval(value());}, 2);
+will(function(){init('(if #t "True" "False")'); return eval(value());}, "\"True\"");
+will(function(){init('(if #f "True" "False")'); return eval(value());}, "\"False\"");
