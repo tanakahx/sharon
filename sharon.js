@@ -191,10 +191,23 @@ var cdr = function(sexp) {
     return sexp.cdr;
 };
 
+var length = function(sexp) {
+    var len = 0;
+
+    while (sexp !== null) {
+        len++;
+        sexp = cdr(sexp);
+    }
+    return len;
+}
+
 var symtbl = {
     'if' : {
         'type' : 'special',
         'function' : function(sexp) {
+            if (length(sexp) !== 3) {
+                error("Invalid number of arguments");
+            }
             if (eval(car(sexp))) {
                 return eval(car(cdr(sexp)));
             }
