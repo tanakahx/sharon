@@ -129,18 +129,38 @@ var string = function() {
 };
 
 var number = function() {
+
+    // Parse a number sign (#) value.
+
     var string = '';
-    while (ch && /[^ ()]/.exec(ch)) {
+    var n;
+
+    while (ch && /[^\s()]/.exec(ch)) {
         string += ch;
         next();
     }
-    if (/[tT]/.exec(string)) {
+    if (/^[tT]$/.exec(string)) {
         return true;
     }
-    else if (/[fF]/.exec(string)) {
+    else if (/^[fF]$/.exec(string)) {
         return false;
     }
-    return string;
+    else if (/^[xX][\da-fA-F]+$/.exec(string)) {
+        n = parseInt(string.slice(1), 16);
+    }
+    else if (/^[dD]\d+$/.exec(string)) {
+        n = parseInt(string.slice(1), 10);
+    }
+    else if (/^[bB][01]+$/.exec(string)) {
+        n = parseInt(string.slice(1), 2);
+    }
+    else if (/^[oO][0-7]+$/.exec(string)) {
+        n = parseInt(string.slice(1), 8);
+    }
+    if (isNaN(n)) {
+        error("Bad number");
+    }
+    return n;
 };
 
 var value = function() {
@@ -352,7 +372,7 @@ var plan = function(count) {
     }
 };
 
-plan(36);
+plan(48);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -390,3 +410,15 @@ is(print(true),  '#t');
 is(print(false), '#f');
 will(function(){init('#t'); return eval(value());}, true);
 will(function(){init('#f'); return eval(value());}, false);
+will(function(){init('#d10'); return eval(value());}, 10);
+will(function(){init('#D10'); return eval(value());}, 10);
+will(function(){init('#x10'); return eval(value());}, 16);
+will(function(){init('#X10'); return eval(value());}, 16);
+will(function(){init('#b10'); return eval(value());}, 2);
+will(function(){init('#B10'); return eval(value());}, 2);
+will(function(){init('#o10'); return eval(value());}, 8);
+will(function(){init('#O10'); return eval(value());}, 8);
+will(function(){init('#d15'); return eval(value());}, 15);
+will(function(){init('#xF'); return eval(value());}, 15);
+will(function(){init('#b1111'); return eval(value());}, 15);
+will(function(){init('#o17'); return eval(value());}, 15);
