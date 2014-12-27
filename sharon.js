@@ -217,6 +217,16 @@ var symtbl = {
         },
     },
 
+    'not' : {
+        'type' : 'function',
+        'function' : function() {
+            if (arguments.length !== 1) {
+                error("Invalid number of arguments");
+            }
+            return (arguments[0] === false) ? true : false;
+        },
+    },
+
     '=' : {
         'type' : 'function',
         'function' : function() {
@@ -232,7 +242,7 @@ var symtbl = {
                 }
                 return true;
             }
-        }
+        },
     },
 
     '+' : {
@@ -388,7 +398,7 @@ var plan = function(count) {
     }
 };
 
-plan(52);
+plan(56);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -442,3 +452,7 @@ will(function(){init('(if #t 1 2)'); return eval(value());}, 1);
 will(function(){init('(if #f 1 2)'); return eval(value());}, 2);
 will(function(){init('(if #t "True" "False")'); return eval(value());}, "\"True\"");
 will(function(){init('(if #f "True" "False")'); return eval(value());}, "\"False\"");
+will(function(){init('(not #f)'); return eval(value());}, true);
+will(function(){init('(not #t)'); return eval(value());}, false);
+will(function(){init('(not 0)'); return eval(value());}, false);
+will(function(){init('(not "foo")'); return eval(value());}, false);
