@@ -201,18 +201,41 @@ var length = function(sexp) {
     return len;
 }
 
-var symtbl = {
+var gsym = {
+    'define' : {
+        'type' : 'special',
+        'function' : function(sexp, env) {
+            var name;
+            var obj = {};
+            var arg = [];
+            var a;
+            if (length(sexp) === 0) {
+                error("Invalid number of arguments");
+            }
+            name = car(car(sexp));
+            obj.type = 'lambda';
+            a = cdr(car(sexp)); // get a argument list from sexp
+            while (a !== null) {
+                arg.push(car(a));
+                a = cdr(a);
+            }
+            obj.arg = arg;
+            obj.function = car(cdr(sexp)); // get a function body from sexp
+            env[name] = obj;
+        },
+    },
+
     'if' : {
         'type' : 'special',
-        'function' : function(sexp) {
+        'function' : function(sexp, env) {
             if (length(sexp) !== 3) {
                 error("Invalid number of arguments");
             }
-            if (eval(car(sexp))) {
-                return eval(car(cdr(sexp)));
+            if (evals(car(sexp), env)) {
+                return evals(car(cdr(sexp)), env);
             }
             else {
-                return eval(car(cdr(cdr(sexp))));
+                return evals(car(cdr(cdr(sexp))), env);
             }
         },
     },
@@ -302,9 +325,28 @@ var symtbl = {
             }
         },
     },
+
+    'incf' : {
+        'type' : 'lambda',
+        'arg' : ['x'],
+        'function' : {
+            car : '+',
+            cdr : {
+                car : 'x',
+                cdr : {
+                    car : 1,
+                    cdr : null,
+                },
+            }
+        }
+    },
 };
 
 var eval = function(sexp) {
+    return evals(sexp, gsym);
+};
+
+var evals = function(sexp, env) {
     if (sexp === null) {
         return null;
     }
@@ -315,7 +357,12 @@ var eval = function(sexp) {
         return sexp;
     }
     else if (typeof sexp === 'string') {
-        return sexp;
+        if (/^".*"$/.exec(sexp)) {
+            return sexp;
+        }
+        else {
+            return env[sexp];
+        }
     }
     else if (typeof sexp === 'object') {
         var _car = car(sexp);
@@ -324,25 +371,34 @@ var eval = function(sexp) {
             if (_car === '"') {
                 error("Illegal function call.");
             }
-            else {
-                var symbol = symtbl[_car];
-                if (symbol.type === 'function') {
-                    var sexp = _cdr;
-                    var args = [];
-                    while (sexp !== null) {
-                        if (typeof car(sexp) === 'object') {
-                            args.push(eval(car(sexp)));
-                        }
-                        else {
-                            args.push(car(sexp));
-                        }
-                        sexp = cdr(sexp);
-                    }
-                    return symbol.function.apply(this, args);
+            var symbol = env[_car];
+            if (symbol.type === 'function') {
+                var sexp = _cdr;
+                var arg = [];
+                while (sexp !== null) {
+                    arg.push(evals(car(sexp), env));
+                    sexp = cdr(sexp);
                 }
-                else if (symbol.type === 'special') {
-                    return symbol.function(cdr(sexp));
+                return symbol.function.apply(this, arg);
+            }
+            else if (symbol.type === 'special') {
+                return symbol.function(cdr(sexp), env);
+            }
+            else if (symbol.type === 'lambda') {
+                var sexp = _cdr;
+                var arg = symbol.arg;
+                var e = {};
+                for (k in env) {
+                    e[k] = env[k];
                 }
+                for (var i = 0; i < arg.length; i++) {
+                    e[arg[i]] = evals(car(sexp), env);
+                    sexp = cdr(sexp);
+                }
+                if (sexp !== null) {
+                    error("Illegal function call.")
+                }
+                return evals(symbol.function, e);
             }
         }
         else {
@@ -420,7 +476,7 @@ var plan = function(count) {
     }
 };
 
-plan(58);
+plan(61);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -442,8 +498,8 @@ will(function(){init('(*)');       return eval(value());}, 1);
 will(function(){init('(* 1 2 3)'); return eval(value());}, 6);
 will(function(){init('-123');  return eval(value());}, -123);
 will(function(){init(' -123'); return eval(value());}, -123);
-will(function(){init('hello');  return eval(value());}, "hello");
-will(function(){init('hello '); return eval(value());}, "hello");
+will(function(){init('\"hello\"');  return eval(value());}, "\"hello\"");
+will(function(){init('\"hello\" '); return eval(value());}, "\"hello\"");
 will(function(){init('(+ 1 (* 2 3))'); return eval(value());}, 7);
 will(function(){init('(+ 1 (* 2 3) 4)'); return eval(value());}, 11);
 will(function(){init('(+ (* 2 3) 4)'); return eval(value());}, 10);
@@ -480,3 +536,8 @@ will(function(){init('(not 0)'); return eval(value());}, false);
 will(function(){init('(not "foo")'); return eval(value());}, false);
 will(function(){init('(if #t 1 2)'); return print(value())}, "(if #t 1 2)");
 will(function(){init('(define(foo x)(+ x 1))'); return print(value())}, "(define (foo x) (+ x 1))");
+will(function(){init('(incf 10)'); return eval(value())}, 11);
+will(function(){init('(define (double x) (* x 2))'); eval(value());
+                init('(double 123)'); return eval(value())}, 246);
+will(function(){init('(define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))'); eval(value());
+                init('(fact 5)'); return eval(value())}, 120);
