@@ -199,29 +199,53 @@ var length = function(sexp) {
         sexp = cdr(sexp);
     }
     return len;
-}
+};
+
+var lambda = function(arg, body, env) {
+    var obj = {};
+    var arglist = [];
+    obj.type = 'lambda';
+    while (arg !== null) {
+        arglist.push(car(arg));
+        arg = cdr(arg);
+    }
+    obj.arg = arglist;
+    obj.function = { car : 'begin', cdr : body};
+    return obj;
+};
 
 var gsym = {
     'define' : {
         'type' : 'special',
         'function' : function(sexp, env) {
-            var name;
-            var obj = {};
-            var arg = [];
-            var a;
             if (length(sexp) === 0) {
                 error("Invalid number of arguments");
             }
-            name = car(car(sexp));
-            obj.type = 'lambda';
-            a = cdr(car(sexp)); // get a argument list from sexp
-            while (a !== null) {
-                arg.push(car(a));
-                a = cdr(a);
-            }
-            obj.arg = arg;
-            obj.function = car(cdr(sexp)); // get a function body from sexp
+            var name = car(car(sexp));
+            var obj = lambda(cdr(car(sexp)), cdr(sexp), env);
             env[name] = obj;
+        },
+    },
+
+    'lambda' : {
+        'type' : 'special',
+        'function' : function(sexp, env) {
+            if (length(sexp) === 0) {
+                error("Invalid number of arguments");
+            }
+            return lambda(car(sexp), cdr(sexp), env);
+        },
+    },
+
+    'begin' : {
+        'type' : 'special',
+        'function' : function(sexp, env) {
+            var ret = 0;
+            while (sexp !== null) {
+                ret = evals(car(sexp), env);
+                sexp = cdr(sexp);
+            }
+            return ret;
         },
     },
 
@@ -367,11 +391,11 @@ var evals = function(sexp, env) {
     else if (typeof sexp === 'object') {
         var _car = car(sexp);
         var _cdr = cdr(sexp);
-        if (typeof _car === 'string') {
+        if (typeof _car === 'string' || typeof _car === 'object') { // symbol or lambda expression is allowed
             if (_car === '"') {
-                error("Illegal function call.");
+                error("Illegal function call."); // This cannot be happened
             }
-            var symbol = env[_car];
+            var symbol = evals(_car, env);
             if (symbol.type === 'function') {
                 var sexp = _cdr;
                 var arg = [];
@@ -476,7 +500,7 @@ var plan = function(count) {
     }
 };
 
-plan(61);
+plan(63);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -536,8 +560,10 @@ will(function(){init('(not 0)'); return eval(value());}, false);
 will(function(){init('(not "foo")'); return eval(value());}, false);
 will(function(){init('(if #t 1 2)'); return print(value())}, "(if #t 1 2)");
 will(function(){init('(define(foo x)(+ x 1))'); return print(value())}, "(define (foo x) (+ x 1))");
-will(function(){init('(incf 10)'); return eval(value())}, 11);
+will(function(){init('(incf 10)'); return eval(value())}, 11, "(incf 10)");
 will(function(){init('(define (double x) (* x 2))'); eval(value());
-                init('(double 123)'); return eval(value())}, 246);
+                init('(double 123)'); return eval(value())}, 246, "(define (double x) ...)");
 will(function(){init('(define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))'); eval(value());
                 init('(fact 5)'); return eval(value())}, 120);
+will(function(){init('(begin 1 2 3)'); return eval(value())}, 3);
+will(function(){init('((lambda (x) (+ x 1)) 10)'); return eval(value())}, 11);
