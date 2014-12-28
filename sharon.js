@@ -355,7 +355,29 @@ var eval = function(sexp) {
 };
 
 var print = function(sexp) {
-    if (sexp === true) {
+    if (typeof sexp === 'object') {
+        return '(' + prints(sexp) + ')';
+    }
+    else {
+        return prints(sexp);
+    }
+};
+
+var prints = function(sexp) {
+    if (sexp === null) {
+        return '';
+    }
+    else if (typeof sexp === 'object') {
+        var ret;
+        if (typeof sexp.car === 'object') {
+            ret = print(sexp.car);
+        }
+        else {
+            ret = prints(sexp.car);
+        }
+        return (sexp.cdr === null) ? ret : ret + ' ' + prints(sexp.cdr);
+    }
+    else if (sexp === true) {
         return '#t';
     }
     else if (sexp === false) {
@@ -398,7 +420,7 @@ var plan = function(count) {
     }
 };
 
-plan(56);
+plan(58);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -456,3 +478,5 @@ will(function(){init('(not #f)'); return eval(value());}, true);
 will(function(){init('(not #t)'); return eval(value());}, false);
 will(function(){init('(not 0)'); return eval(value());}, false);
 will(function(){init('(not "foo")'); return eval(value());}, false);
+will(function(){init('(if #t 1 2)'); return print(value())}, "(if #t 1 2)");
+will(function(){init('(define(foo x)(+ x 1))'); return print(value())}, "(define (foo x) (+ x 1))");
