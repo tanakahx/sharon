@@ -221,9 +221,15 @@ var gsym = {
             if (length(sexp) === 0) {
                 error("Invalid number of arguments");
             }
-            var name = car(car(sexp));
-            var obj = lambda(cdr(car(sexp)), cdr(sexp), env);
-            env[name] = obj;
+            if (typeof car(sexp) === 'object') {
+                var name = car(car(sexp));
+                var obj = lambda(cdr(car(sexp)), cdr(sexp), env);
+                env[name] = obj;
+            }
+            else {
+                var name = car(sexp);
+                env[name] = evals(car(cdr(sexp)), env);
+            }
         },
     },
 
@@ -500,7 +506,7 @@ var plan = function(count) {
     }
 };
 
-plan(63);
+plan(65);
 
 will(function(){init('-123');  return value();}, -123);
 will(function(){init(' -123'); return value();}, -123);
@@ -567,3 +573,8 @@ will(function(){init('(define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))'); e
                 init('(fact 5)'); return eval(value())}, 120);
 will(function(){init('(begin 1 2 3)'); return eval(value())}, 3);
 will(function(){init('((lambda (x) (+ x 1)) 10)'); return eval(value())}, 11);
+will(function(){init('(define foo 1)'); eval(value());
+                init('foo'); return eval(value()); }, 1);
+will(function(){init('(define foo 1)'); eval(value());
+                init('(define foo 2)'); eval(value());
+                init('foo'); return eval(value()); }, 2);
