@@ -13,13 +13,24 @@ var error = function (m) {
     };
 };
 
+var run = function(text) {
+    var ret;
+
+    init(text);
+    while (at < text.length) {
+        ret = eval(read());
+        white();
+    }
+    return ret;
+};
+
 var init = function(s) {
     at = 0;
     ch = '';
     text = s;
     next();
     white();
-}
+};
 
 var next = function (c) {
 
@@ -166,7 +177,7 @@ var number = function() {
     return n;
 };
 
-var value = function() {
+var read = function() {
     switch (ch) {
     case '(':
         next();
@@ -356,6 +367,14 @@ var gsym = {
         },
     },
 
+    'display' : {
+        'type' : 'function',
+        'function' : function() {
+            console.log(arguments[0]);
+            return undefined;
+        },
+    },
+
     'incf' : {
         'type' : 'lambda',
         'arg' : ['x'],
@@ -508,73 +527,68 @@ var plan = function(count) {
 
 plan(65);
 
-will(function(){init('-123');  return value();}, -123);
-will(function(){init(' -123'); return value();}, -123);
-will(function(){init('hello');  return value();}, "hello");
-will(function(){init('hello '); return value();}, "hello");
-will(function(){init('-123abc'); return value();}, "-123abc");
-will(function(){init('(hello world)'); return car(value());}, "hello");
-will(function(){init('(hello world)'); return car(cdr(value()));}, "world");
-will(function(){init('(hello world)'); return cdr(cdr(value()));}, null);
-will(function(){init('(+ 1 2)'); return car(value());}, "+");
-will(function(){init('(+ 1 2)'); return car(cdr(value()));}, 1);
-will(function(){init('(+ 1 2)'); return car(cdr(cdr(value())));}, 2);
-will(function(){init('(+ 1 2)'); return cdr(cdr(cdr(value())));}, null, "end of list");
-will(function(){init('(+ 1 2)'); return eval(value());}, 3, "1 + 2");
-will(function(){init('(+)');     return eval(value());}, 0, "+ with no argument");
-will(function(){init('(- 1)');   return eval(value());}, -1);
-will(function(){init('(- 1 2)'); return eval(value());}, -1);
-will(function(){init('(*)');       return eval(value());}, 1);
-will(function(){init('(* 1 2 3)'); return eval(value());}, 6);
-will(function(){init('-123');  return eval(value());}, -123);
-will(function(){init(' -123'); return eval(value());}, -123);
-will(function(){init('\"hello\"');  return eval(value());}, "\"hello\"");
-will(function(){init('\"hello\" '); return eval(value());}, "\"hello\"");
-will(function(){init('(+ 1 (* 2 3))'); return eval(value());}, 7);
-will(function(){init('(+ 1 (* 2 3) 4)'); return eval(value());}, 11);
-will(function(){init('(+ (* 2 3) 4)'); return eval(value());}, 10);
-will(function(){init('(/ 2)'); return eval(value());}, 1/2);
-will(function(){init('(/ 2 3)'); return eval(value());}, 2/3);
-will(function(){init('(/ 2 3 4)'); return eval(value());}, 2/3/4);
-will(function(){init('(= 0 0)'); return eval(value());}, true);
-will(function(){init('(= 0 1)'); return eval(value());}, false);
-will(function(){init('(if (= 0 0) 1 2)'); return eval(value());}, 1);
-will(function(){init('(if (= 0 1) 1 2)'); return eval(value());}, 2);
+will(function(){init('-123');  return read();}, -123);
+will(function(){init(' -123'); return read();}, -123);
+will(function(){init('hello');  return read();}, "hello");
+will(function(){init('hello '); return read();}, "hello");
+will(function(){init('-123abc'); return read();}, "-123abc");
+will(function(){init('(hello world)'); return car(read());}, "hello");
+will(function(){init('(hello world)'); return car(cdr(read()));}, "world");
+will(function(){init('(hello world)'); return cdr(cdr(read()));}, null);
+will(function(){init('(+ 1 2)'); return car(read());}, "+");
+will(function(){init('(+ 1 2)'); return car(cdr(read()));}, 1);
+will(function(){init('(+ 1 2)'); return car(cdr(cdr(read())));}, 2);
+will(function(){init('(+ 1 2)'); return cdr(cdr(cdr(read())));}, null, "end of list");
+is(run('(+ 1 2)'), 3, "1 + 2");
+is(run('(+)'), 0, "+ with no argument");
+is(run('(- 1)'), -1);
+is(run('(- 1 2)'), -1);
+is(run('(*)'), 1);
+is(run('(* 1 2 3)'), 6);
+is(run('-123'), -123);
+is(run(' -123'), -123);
+is(run('\"hello\"'), "\"hello\"");
+is(run('\"hello\" '), "\"hello\"");
+is(run('(+ 1 (* 2 3))'), 7);
+is(run('(+ 1 (* 2 3) 4)'), 11);
+is(run('(+ (* 2 3) 4)'), 10);
+is(run('(/ 2)'), 1/2);
+is(run('(/ 2 3)'), 2/3);
+is(run('(/ 2 3 4)'), 2/3/4);
+is(run('(= 0 0)'), true);
+is(run('(= 0 1)'), false);
+is(run('(if (= 0 0) 1 2)'), 1);
+is(run('(if (= 0 1) 1 2)'), 2);
 is(print(true),  '#t');
 is(print(false), '#f');
-will(function(){init('#t'); return eval(value());}, true);
-will(function(){init('#f'); return eval(value());}, false);
-will(function(){init('#d10'); return eval(value());}, 10);
-will(function(){init('#D10'); return eval(value());}, 10);
-will(function(){init('#x10'); return eval(value());}, 16);
-will(function(){init('#X10'); return eval(value());}, 16);
-will(function(){init('#b10'); return eval(value());}, 2);
-will(function(){init('#B10'); return eval(value());}, 2);
-will(function(){init('#o10'); return eval(value());}, 8);
-will(function(){init('#O10'); return eval(value());}, 8);
-will(function(){init('#d15'); return eval(value());}, 15);
-will(function(){init('#xF'); return eval(value());}, 15);
-will(function(){init('#b1111'); return eval(value());}, 15);
-will(function(){init('#o17'); return eval(value());}, 15);
-will(function(){init('(if #t 1 2)'); return eval(value());}, 1);
-will(function(){init('(if #f 1 2)'); return eval(value());}, 2);
-will(function(){init('(if #t "True" "False")'); return eval(value());}, "\"True\"");
-will(function(){init('(if #f "True" "False")'); return eval(value());}, "\"False\"");
-will(function(){init('(not #f)'); return eval(value());}, true);
-will(function(){init('(not #t)'); return eval(value());}, false);
-will(function(){init('(not 0)'); return eval(value());}, false);
-will(function(){init('(not "foo")'); return eval(value());}, false);
-will(function(){init('(if #t 1 2)'); return print(value())}, "(if #t 1 2)");
-will(function(){init('(define(foo x)(+ x 1))'); return print(value())}, "(define (foo x) (+ x 1))");
-will(function(){init('(incf 10)'); return eval(value())}, 11, "(incf 10)");
-will(function(){init('(define (double x) (* x 2))'); eval(value());
-                init('(double 123)'); return eval(value())}, 246, "(define (double x) ...)");
-will(function(){init('(define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))'); eval(value());
-                init('(fact 5)'); return eval(value())}, 120);
-will(function(){init('(begin 1 2 3)'); return eval(value())}, 3);
-will(function(){init('((lambda (x) (+ x 1)) 10)'); return eval(value())}, 11);
-will(function(){init('(define foo 1)'); eval(value());
-                init('foo'); return eval(value()); }, 1);
-will(function(){init('(define foo 1)'); eval(value());
-                init('(define foo 2)'); eval(value());
-                init('foo'); return eval(value()); }, 2);
+is(run('#t'), true);
+is(run('#f'), false);
+is(run('#d10'), 10);
+is(run('#D10'), 10);
+is(run('#x10'), 16);
+is(run('#X10'), 16);
+is(run('#b10'), 2);
+is(run('#B10'), 2);
+is(run('#o10'), 8);
+is(run('#O10'), 8);
+is(run('#d15'), 15);
+is(run('#xF'), 15);
+is(run('#b1111'), 15);
+is(run('#o17'), 15);
+is(run('(if #t 1 2)'), 1);
+is(run('(if #f 1 2)'), 2);
+is(run('(if #t "True" "False")'), "\"True\"");
+is(run('(if #f "True" "False")'), "\"False\"");
+is(run('(not #f)'), true);
+is(run('(not #t)'), false);
+is(run('(not 0)'), false);
+is(run('(not "foo")'), false);
+will(function(){init('(if #t 1 2)'); return print(read())}, "(if #t 1 2)");
+will(function(){init('(define(foo x)(+ x 1))'); return print(read())}, "(define (foo x) (+ x 1))");
+is(run('(incf 10)'), 11, "(incf 10)");
+is(run('(define (double x) (* x 2)) (double 123)'), 246, "(define (double x) ...)");
+is(run('(define (fact n) (if (= n 0) 1 (* n (fact (- n 1))))) (fact 5)'), 120);
+is(run('(begin 1 2 3)'), 3);
+is(run('((lambda (x) (+ x 1)) 10)'), 11);
+is(run('(define foo 1) foo'), 1);
+is(run('(define foo 1) (define foo 2) foo'), 2);
